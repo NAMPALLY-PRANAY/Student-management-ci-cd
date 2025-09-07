@@ -2,20 +2,22 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'   // Make sure Maven is installed in Jenkins (Manage Jenkins → Global Tool Config)
-        jdk 'JDK21'     // Configure JDK in Jenkins too
+        // Use the exact names you configured in Jenkins global tools
+        jdk 'JDK21'
+        maven 'Maven'
     }
 
     environment {
         IMAGE_NAME = "studentapp"
         CONTAINER_NAME = "studentapp"
         PORT = "2025"
+        DATA_VOLUME = "${pwd()}/data" // Relative path for persistent H2 storage
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                // Checkout the repo
                 git branch: 'main',
                     url: 'https://github.com/NAMPALLY-PRANAY/Student-management-ci-cd.git'
             }
@@ -23,36 +25,54 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                // Navigate into the studentapp folder before building
-                dir('studentapp/studentapp') {
-                    sh './mvnw clean package -DskipTests'
+                // Windows uses .\mvnw.cmd, Linux/mac uses ./mvnw
+                script {
+                    if (isUnix()) {
+                        sh './mvnw clean package -DskipTests'
+                    } else {
+                        bat '.\\mvnw.cmd clean package -DskipTests'
+                    }
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                dir('studentapp/studentapp') {
-                    sh 'docker build -t ${IMAGE_NAME}:latest .'
+                script {
+                    if (isUnix()) {
+                        sh "docker build -t ${IMAGE_NAME}:latest ."
+                    } else {
+                        bat "docker build -t ${IMAGE_NAME}:latest ."
+                    }
                 }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                dir('studentapp/studentapp') {
-                    // Stop and remove old container if running
-                    sh 'docker rm -f ${CONTAINER_NAME} || true'
-                    // Run new container with volume mapping for persistent H2 DB
-                    sh 'docker run -d -p ${PORT}:2025 -v $PWD/data:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest'
+                script {
+                    // Stop and remove existing container
+                    if (isUnix()) {
+                        sh "docker rm -f ${CONTAINER_NAME} || true"
+                        sh "docker run -d -p ${PORT}:2025 -v ${DATA_VOLUME}:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
+                    } else {
+                        bat "docker rm -f ${CONTAINER_NAME} || exit 0"
+                        bat "docker run -d -p ${PORT}:2025 -v %CD%\\data:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
+                    }
                 }
             }
         }
 
-        stage('Postman/API Test (optional)') {
+        stage('Postman/API Test (Optional)') {
             steps {
                 echo "Here you could add Newman (Postman CLI) to run API tests"
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished. Check container logs if needed."
         }
     }
 }

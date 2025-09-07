@@ -31,6 +31,12 @@ public class StudentRestController {
         return student;
     }
 
+    // Add: POST multiple students
+    @PostMapping("/batch")
+    public List<Student> addStudents(@RequestBody List<Student> students) {
+        return studentService.addStudents(students);
+    }
+
     @PutMapping("/{id}")
     public Student updateStudent(@PathVariable int id, @RequestBody Student student) {
         student.setId(id);

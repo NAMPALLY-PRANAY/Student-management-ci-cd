@@ -56,4 +56,8 @@ public class StudentService {
             repo.save(s);
         }
     }
+
+    public List<Student> addStudents(List<Student> students) {
+        return repo.saveAll(students);
+    }
 }

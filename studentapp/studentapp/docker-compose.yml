@@ -1,0 +1,11 @@
+services:
+  studentapp:
+    image: studentapp:latest   # Use the local image
+    container_name: studentapp
+    ports:
+      - "2025:2025"
+    volumes:
+      - studentapp-data:/app/data
+
+volumes:
+  studentapp-data:

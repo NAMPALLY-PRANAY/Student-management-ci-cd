@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'   // Make sure Maven is installed in Jenkins (Manage Jenkins → Global Tool Config)
+        jdk 'JDK21'     // Configure JDK in Jenkins too
+    }
+
+    environment {
+        IMAGE_NAME = "studentapp"
+        CONTAINER_NAME = "studentapp"
+        PORT = "2025"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/<your-username>/studentapp.git'
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                sh './mvnw clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${IMAGE_NAME}:latest .'
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                // stop and remove old container if running
+                sh 'docker rm -f ${CONTAINER_NAME} || true'
+                // run new one
+                sh 'docker run -d -p ${PORT}:2025 --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest'
+            }
+        }
+
+        stage('Postman/API Test (optional)') {
+            steps {
+                echo "Here you could add Newman (Postman CLI) to run API tests"
+            }
+        }
+    }
+}

@@ -15,29 +15,37 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                // Checkout the repo
                 git branch: 'main',
-                    url: 'https://github.com/<your-username>/studentapp.git'
+                    url: 'https://github.com/NAMPALLY-PRANAY/Student-management-ci-cd.git'
             }
         }
 
         stage('Build with Maven') {
             steps {
-                sh './mvnw clean package -DskipTests'
+                // Navigate into the studentapp folder before building
+                dir('studentapp/studentapp') {
+                    sh './mvnw clean package -DskipTests'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:latest .'
+                dir('studentapp/studentapp') {
+                    sh 'docker build -t ${IMAGE_NAME}:latest .'
+                }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                // stop and remove old container if running
-                sh 'docker rm -f ${CONTAINER_NAME} || true'
-                // run new one
-                sh 'docker run -d -p ${PORT}:2025 --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest'
+                dir('studentapp/studentapp') {
+                    // Stop and remove old container if running
+                    sh 'docker rm -f ${CONTAINER_NAME} || true'
+                    // Run new container with volume mapping for persistent H2 DB
+                    sh 'docker run -d -p ${PORT}:2025 -v $PWD/data:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest'
+                }
             }
         }
 

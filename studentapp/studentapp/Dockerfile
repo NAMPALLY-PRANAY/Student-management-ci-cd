@@ -1,5 +1,5 @@
 # Base image
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:21-jdk
 
 # Set working directory
 WORKDIR /app

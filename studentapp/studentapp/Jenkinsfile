@@ -6,6 +6,7 @@ pipeline {
         CONTAINER_NAME = "studentapp"
         PORT = "2025"
         DATA_VOLUME = "data"
+        APP_DIR = "studentapp/studentapp"  // Path to pom.xml and Dockerfile
     }
 
     stages {
@@ -18,11 +19,13 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh './studentapp/studentapp/mvnw clean package -DskipTests'
-                    } else {
-                        bat '.\\studentapp\\studentapp\\mvnw.cmd clean package -DskipTests'
+                dir("${APP_DIR}") {
+                    script {
+                        if (isUnix()) {
+                            sh './mvnw clean package -DskipTests'
+                        } else {
+                            bat '.\\mvnw.cmd clean package -DskipTests'
+                        }
                     }
                 }
             }
@@ -30,11 +33,13 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh "docker build -t ${IMAGE_NAME}:latest ./studentapp/studentapp"
-                    } else {
-                        bat "docker build -t %IMAGE_NAME%:latest .\\studentapp\\studentapp"
+                dir("${APP_DIR}") {
+                    script {
+                        if (isUnix()) {
+                            sh "docker build -t ${IMAGE_NAME}:latest ."
+                        } else {
+                            bat "docker build -t %IMAGE_NAME%:latest ."
+                        }
                     }
                 }
             }
@@ -48,7 +53,7 @@ pipeline {
                         sh "docker run -d -p ${PORT}:2025 -v ${DATA_VOLUME}:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
                     } else {
                         bat "docker rm -f %CONTAINER_NAME% || exit 0"
-                        bat "docker run -d -p %PORT%:2025 -v %CD%\\studentapp\\studentapp\\data:/app/data --name %CONTAINER_NAME% %IMAGE_NAME%:latest"
+                        bat "docker run -d -p %PORT%:2025 -v %CD%\\${APP_DIR}\\data:/app/data --name %CONTAINER_NAME% %IMAGE_NAME%:latest"
                     }
                 }
             }

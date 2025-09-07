@@ -1,21 +1,14 @@
 pipeline {
     agent any
 
-    tools {
-        // Use the exact names you configured in Jenkins global tools
-        jdk 'JDK21'
-        maven 'Maven'
-    }
-
     environment {
         IMAGE_NAME = "studentapp"
         CONTAINER_NAME = "studentapp"
         PORT = "2025"
-        DATA_VOLUME = "${pwd()}/data" // Relative path for persistent H2 storage
+        DATA_VOLUME = "data"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -25,12 +18,11 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                // Windows uses .\mvnw.cmd, Linux/mac uses ./mvnw
                 script {
                     if (isUnix()) {
-                        sh './mvnw clean package -DskipTests'
+                        sh './studentapp/studentapp/mvnw clean package -DskipTests'
                     } else {
-                        bat '.\\mvnw.cmd clean package -DskipTests'
+                        bat '.\\studentapp\\studentapp\\mvnw.cmd clean package -DskipTests'
                     }
                 }
             }
@@ -40,9 +32,9 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh "docker build -t ${IMAGE_NAME}:latest ."
+                        sh "docker build -t ${IMAGE_NAME}:latest ./studentapp/studentapp"
                     } else {
-                        bat "docker build -t ${IMAGE_NAME}:latest ."
+                        bat "docker build -t %IMAGE_NAME%:latest .\\studentapp\\studentapp"
                     }
                 }
             }
@@ -51,13 +43,12 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Stop and remove existing container
                     if (isUnix()) {
                         sh "docker rm -f ${CONTAINER_NAME} || true"
                         sh "docker run -d -p ${PORT}:2025 -v ${DATA_VOLUME}:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
                     } else {
-                        bat "docker rm -f ${CONTAINER_NAME} || exit 0"
-                        bat "docker run -d -p ${PORT}:2025 -v %CD%\\data:/app/data --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
+                        bat "docker rm -f %CONTAINER_NAME% || exit 0"
+                        bat "docker run -d -p %PORT%:2025 -v %CD%\\studentapp\\studentapp\\data:/app/data --name %CONTAINER_NAME% %IMAGE_NAME%:latest"
                     }
                 }
             }
@@ -65,7 +56,7 @@ pipeline {
 
         stage('Postman/API Test (Optional)') {
             steps {
-                echo "Here you could add Newman (Postman CLI) to run API tests"
+                echo "You can add Newman (Postman CLI) here to run API tests"
             }
         }
     }

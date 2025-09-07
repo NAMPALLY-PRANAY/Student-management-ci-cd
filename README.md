@@ -1,1 +1,1 @@
-# tudent-management-ci-cd
+# Student-management-ci-cd
